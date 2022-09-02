@@ -5,6 +5,11 @@ name = "pypi"
 
 [packages]
 scrapy = "*"
+selenium = "*"
+webdriver-manager = "*"
+date-extractor = "*"
+alive-progress = "*"
+pandas = "*"
 
 [dev-packages]
 

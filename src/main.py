@@ -1,4 +1,0 @@
-from extractors import booking_extractor
-
-if __name__ == "__main__":
-    booking_extractor.BookingExtractor().get_accomodation_list(url=r"https://www.booking.com/searchresults.es.html?label=gen173nr-1DCAEoggI46AdIM1gEaDKIAQGYAQq4ARfIAQzYAQPoAQGIAgGoAgO4Ao2SnpIGwAIB0gIkOGNmOGNlNjItZmRlYi00OTFlLWI5MWQtNzc1ZjJjYWIzOGY42AIE4AIB&sid=ea444c6decfedc8d44135d521d621e1f&sb=1&sb_lp=1&src=index&src_elem=sb&error_url=https%3A%2F%2Fwww.booking.com%2Findex.es.html%3Flabel%3Dgen173nr-1DCAEoggI46AdIM1gEaDKIAQGYAQq4ARfIAQzYAQPoAQGIAgGoAgO4Ao2SnpIGwAIB0gIkOGNmOGNlNjItZmRlYi00OTFlLWI5MWQtNzc1ZjJjYWIzOGY42AIE4AIB%3Bsid%3Dea444c6decfedc8d44135d521d621e1f%3Bsb_price_type%3Dtotal%26%3B&ss=Santa+Marta%2C+Colombia&is_ski_area=&checkin_year=&checkin_month=&checkout_year=&checkout_month=&group_adults=2&group_children=0&no_rooms=1&b_h4u_keep_filters=&from_sf=1&dest_id=-598739&dest_type=city&search_pageview_id=d722a44695a301da&search_selected=true")

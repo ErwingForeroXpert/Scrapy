@@ -1,0 +1,7 @@
+Step 1:
+    run command "pipenv install" (required install "pipenv" in system)
+
+Step 2:
+    run command "python run main.py" (here .../ScrapyBooking/)
+    OR
+    execute "Run > Start Debugging" over the file main.py in VsCode
