@@ -1,6 +1,6 @@
 import json
 from scrapy.crawler import CrawlerProcess
-from ScrapyBooking.spiders.hotels_booking_spider import HotelsBookingSpider
+from ScrapyTripadvisor.spiders. import HotelsBookingSpider
 
 if __name__ == "__main__":
     data = []
