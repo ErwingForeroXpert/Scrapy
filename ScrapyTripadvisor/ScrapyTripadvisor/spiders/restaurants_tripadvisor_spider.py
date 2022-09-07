@@ -6,16 +6,16 @@ import scrapy
 import pandas as pd
 from alive_progress import alive_bar
 from scrapy import signals
-from ScrapyTripadvisor import constants as const, utils
-from ScrapyTripadvisor.items import BookingHotel
+from ScrapyBooking import constants as const, utils
+from ScrapyBooking.items import BookingHotel
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 
-class HotelsTripadvisorSpider(scrapy.Spider):
+class RestaurantsTripadvisorSpider(scrapy.Spider):
 
-    name = "hotels_tripadvisor"
-    base_url = const.LINK_RIOACHA_HOTELS
+    name = "hotels_booking"
+    url_home = const.LINK_RIOACHA_SEARCH
     margin_months = ["", ""] #yyyy-mm
     margin_days = ["", ""] #dd
     adults = 2
@@ -32,7 +32,7 @@ class HotelsTripadvisorSpider(scrapy.Spider):
 
     @classmethod
     def from_crawler(cls, crawler, *args, **kwargs):
-        spider = super(HotelsTripadvisorSpider, cls).from_crawler(crawler, *args, **kwargs)
+        spider = super(HotelsBookingSpider, cls).from_crawler(crawler, *args, **kwargs)
         crawler.signals.connect(spider.spider_closed, signal=signals.spider_closed)
         return spider
 
