@@ -11,6 +11,7 @@ date-extractor = "*"
 alive-progress = "*"
 pandas = "*"
 bs4 = "*"
+scrapy-splash = "*"
 
 [dev-packages]
 

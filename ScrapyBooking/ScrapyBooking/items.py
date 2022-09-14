@@ -11,6 +11,7 @@ class BookingHotel(scrapy.Item):
     # name = scrapy.Field()
     name = scrapy.Field()
     address = scrapy.Field()
+    location = scrapy.Field()
     description = scrapy.Field()
     distance_to_beach = scrapy.Field()
     categories = scrapy.Field()
