@@ -85,7 +85,7 @@ class HotelsBookingSpider(scrapy.Spider):
         else:
             valid_page = True
             while valid_page is True:
-                utils.wait_element_is_interactable(driver.find_element("xpath", "//div[@class='a1b3f50dcd f7c6687c3d a1f3ecff04 f996d8c258']"))
+                utils.wait_element_is_interactable(driver, "//div[@class='a1b3f50dcd f7c6687c3d a1f3ecff04 f996d8c258']", By.XPATH)
                 hotels_url.extend([x.get_attribute('href') for x in driver.find_elements("xpath","//div[@class='a1b3f50dcd f7c6687c3d a1f3ecff04 f996d8c258']//h3[@class='a4225678b2']/a")])
 
                 if len(driver.find_elements("xpath","//button[contains(@aria-label, 'Página siguiente')]")) > 0:

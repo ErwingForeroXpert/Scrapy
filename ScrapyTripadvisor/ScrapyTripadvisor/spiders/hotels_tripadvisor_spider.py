@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import pickle
 import os
@@ -15,13 +16,14 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 class HotelsTripadvisorSpider(scrapy.Spider):
 
-    name = "hotels_tripadvisor"
-    base_url = const.LINK_RIOACHA_HOTELS
-    hotel_find = "Rioacha"
+    name: str = "hotels_tripadvisor"
+    base_url: str = const.LINK_RIOACHA_HOTELS
+    hotel_find: str = "Rioacha"
 
-    def __init__(self, name = None, chromeOptions = webdriver.ChromeOptions(), **kwargs):
+    def __init__(self, name = None, chromeOptions = webdriver.ChromeOptions(), use_cache = False, **kwargs):
 
         super().__init__(name, **kwargs)
+        self.use_cache = use_cache
         self.data = []
         self.driver = webdriver.Chrome(
             executable_path=ChromeDriverManager().install(), options=chromeOptions)
@@ -34,13 +36,11 @@ class HotelsTripadvisorSpider(scrapy.Spider):
 
     def start_requests(self):
 
-        use_cache = True
-
-        if use_cache is False:
+        if self.use_cache is False:
             self.driver.get(self.base_url)
 
         #hotels url
-        hotels_url = self.get_hotel_urls(self.driver, use_cache = use_cache)
+        hotels_url = self.get_hotel_urls(self.driver, use_cache = self.use_cache)
         with alive_bar(len(hotels_url), bar="filling", title="Hotels", force_tty=True) as bar:
             for url in hotels_url:
                 bar()
@@ -49,28 +49,28 @@ class HotelsTripadvisorSpider(scrapy.Spider):
     def spider_closed(self, spider):
 
         #save to json
-        with open('hotels.json', 'w', encoding='utf8') as outfile:
+        with open(f'{self.name}.json', 'w', encoding='utf8') as outfile:
             json.dump(self.data, outfile, ensure_ascii=False, indent=4)
 
         #save to csv
-        pd.DataFrame.from_dict(self.data).to_csv("hotels.csv", encoding="utf-8-sig", index=False)
+        pd.DataFrame.from_dict(self.data).to_csv(f"{self.name}.csv", encoding="utf-8-sig", index=False)
 
     def get_hotel_urls(self, driver: ChromeDriverManager, use_cache: bool = False) -> list:
         hotels_url = []
 
         if use_cache is True:
-            if os.path.exists('hotels_tripadvisor_url.pkl'):
-                with open('hotels_tripadvisor_url.pkl', 'rb') as handle:
+            if os.path.exists(f'{self.name}_url.pkl'):
+                with open(f'{self.name}_url.pkl', 'rb') as handle:
                     hotels_url = pickle.load(handle)
             else:
                 hotels_url = self.get_hotel_urls(driver)
         else:
             valid_page = True
-            utils.wait_element_is_interactable(driver.find_element("xpath", "//button[@class='rmyCe _G B- z _S c Wc wSSLS pexOo sOtnj']"))
+            utils.wait_element_is_interactable(driver, "//button[@class='rmyCe _G B- z _S c Wc wSSLS pexOo sOtnj']", By.XPATH)
             driver.find_element("xpath", "//button[@class='rmyCe _G B- z _S c Wc wSSLS pexOo sOtnj']").click()
 
             while valid_page is True:
-                utils.wait_element_is_interactable(driver.find_element("xpath", "//div[@id='taplc_hsx_hotel_list_lite_dusty_hotels_combined_sponsored_ad_density_control_0']"))
+                utils.wait_element_is_interactable(driver, "//div[@id='taplc_hsx_hotel_list_lite_dusty_hotels_combined_sponsored_ad_density_control_0']", By.XPATH)
                 hotels_url.extend([x.get_attribute('href') for x in driver.find_elements("xpath", "//div[@class='listing_title']/a")])
 
                 if len(driver.find_elements("xpath", "//a[contains(text(), 'Siguiente')]")) > 0:
@@ -84,55 +84,42 @@ class HotelsTripadvisorSpider(scrapy.Spider):
             
             hotels_url = sorted(set(hotels_url))
 
-            if os.path.exists('hotels_tripadvisor_url.pkl'):
-                os.remove('hotels_tripadvisor_url.pkl')
+            if os.path.exists(f'{self.name}_url.pkl'):
+                os.remove(f'{self.name}_url.pkl')
 
-            with open('hotels_tripadvisor_url.pkl', 'wb') as handle:
+            with open(f'{self.name}_url.pkl', 'wb') as handle:
                 pickle.dump(hotels_url, handle, protocol = pickle.HIGHEST_PROTOCOL)
 
         return hotels_url
 
-    def get_hotel_comments(self, url: str, **kwargs) -> None:
-        comments = []
-        self.driver.get(url)
-        button = None if len(v:=self.driver.find_elements("xpath", "//button[@rel='reviews' and @href='#blockdisplay4']")) == 0 else v[0]
+    def get_hotel_comments(self, **kwargs) -> None:
 
-        if button is not None:
-            button.click()
-            utils.waitElement(self.driver, "//input[contains(@type, 'search')]",  By.XPATH, True)
-            
-            valid_page = True
-            while valid_page is True:
-                utils.wait_element_is_interactable(self.driver, "//div[@class='c-review-block']", By.XPATH)
-                elements_comments = None if len(v:=self.driver.find_elements("xpath", "//div[@class='c-review-block']")) == 0 else v
+        comments = []        
+        valid_page = True
 
-                for element in elements_comments:
-                    comment = {}
-                    comment["user_name"] = "" if len(v:=element.find_elements("xpath", ".//span[@class='bui-avatar-block__title']")) \
-                        == 0 else utils.filter_empty_string(v[0].text)
-                    comment["date"] = "" if len(v:=element.find_elements("xpath", ".//div[@class='c-review-block__row']//span[@class='c-review-block__date']")) \
-                        == 0 else utils.filter_empty_string(v[0].text)
+        while valid_page is True:
+            utils.wait_element_is_interactable(self.driver, "//div[@class='YibKl MC R2 Gi z Z BB pBbQr']", By.XPATH)
+            elements_comments = [] if len(v:=self.driver.find_elements("xpath", "//div[@class='YibKl MC R2 Gi z Z BB pBbQr']")) == 0 else v
 
-                    posible_descriptions = None if len(v:=element.find_elements("xpath", ".//div[@class='c-review']//div")) == 0 else v 
-                    comment["bad_description"], comment["good_description"] = "", ""
+            for element in elements_comments:
+                comment = {}
+                comment["user_name"] = "" if len(v:=element.find_elements("xpath", ".//a[@class='ui_header_link uyyBf']")) \
+                    == 0 else utils.filter_empty_string(v[0].text)
+                comment["date"] = "" if len(v:=element.find_elements("xpath", ".//div[@class='cRVSd']//span")) \
+                    == 0 else utils.filter_empty_string(self.extract_comment_date(v[0].text))
 
-                    if posible_descriptions is not None:
-                        for description in posible_descriptions:
-                            if "lalala" in description.get_attribute("class"):
-                                comment["bad_description"] = "" if len(v:=description.find_elements("xpath", ".//span[@class='c-review__body']")) == 0 else utils.filter_empty_string(v[0].text)
-                            else:
-                                comment["good_description"] = "" if len(v:=description.find_elements("xpath", ".//span[@class='c-review__body']")) == 0 else utils.filter_empty_string(v[0].text)
+                comment["description"] = "" if len(v:=element.find_elements("xpath", ".//q[@class='QewHA H4 _a']//span")) == 0 else utils.filter_empty_string(v[0].text)
 
-                    comment["score"] = "" if (v:=element.find_element("xpath", ".//div[@class='bui-grid']//div[contains(@aria-label, 'Puntuación:')]").text) is None else utils.filter_empty_string(v)
-                    comments.append(comment)
+                comment["score"] = "" if len(v:=element.find_elements("xpath", ".//span[contains(@class, 'ui_bubble_rating')]")) == 0 else self.extract_rating(v[0].get_attribute('class'))
+                comments.append(comment)
 
-                if len(self.driver.find_elements("xpath", "//a[@class='pagenext']")) > 0:
-                    valid_page = utils.elementIsVisible(self.driver, "//a[@class='pagenext']",  By.XPATH) and self.driver.find_element("xpath", "//a[@class='pagenext']").is_enabled()
-                    if valid_page is True:
-                        self.driver.find_element("xpath", "//a[@class='pagenext']").click()
-                        time.sleep(1)
-                else: 
-                    valid_page = False
+            if len(self.driver.find_elements("xpath", "//a[@class='ui_button nav next primary ']")) > 0:
+                valid_page = utils.elementIsVisible(self.driver, "//a[@class='ui_button nav next primary ']",  By.XPATH) and self.driver.find_element("xpath", "//a[@class='ui_button nav next primary ']").is_enabled()
+                if valid_page is True:
+                    self.driver.find_element("xpath", "//a[@class='ui_button nav next primary ']").click()
+                    time.sleep(1)
+            else: 
+                valid_page = False
 
         return comments
 
@@ -172,53 +159,67 @@ class HotelsTripadvisorSpider(scrapy.Spider):
 
         return ""
 
+    def extract_rating(self, text: str) -> str:
+        if text != "":
+            rating = re.search(r"\d+", text) 
+            if rating is not None:
+                rating = rating.group(0)
+                return f"{rating[0]},{rating[-1]}" if len(rating) == 2 else rating
+
+        return ""
+
+    def extract_comment_date(self, text: str) -> str:
+
+        try:
+            match = re.search(r'(?:\()(\w{2,3})(?:.*de.*?)(\d{4})', text)
+
+            if match != None:
+                eng_month = utils.transform_month_esp2eng(match.group(1))
+                return datetime.strptime(f"01-{eng_month}-{match.group(2)}", '%d-%b-%Y').strftime('%m/%Y')
+        except:
+          print(f'date not found {text}')
+        
+        
+        return ""
+
     def parse(self, response, **kwargs):
         
         hotel = TripadvisorHotel()
 
         hotel["name"] = self.extract_text(response, "//h1[@id='HEADING']/text()")
-        hotel["address"] = self.extract_text(response, "//span[@class='fHvkI PTrfg']/text()")
-        hotel["location"] = self.extract_location_from_url(self.extract_text(response, "//span[@data-test-target='staticMapSnapshot']/img/@src"))
+        hotel["address"] = self.extract_text(response, "//span[@class='fHvkI PTrfg']/text()", skip=1)
         hotel["description"] = self.extract_text(response, "//div[@class='fIrGe _T'][1]//p/text()")
-        hotel["distance_to_beach"] = self.extract_text(response, "//div[@data-testid='DestinationCard']//span[@class='a51f4b5adb']/text()")
         hotel["categories"] = {}
-        hotel["hotel_surroundings"] = {}
 
-        parent_categories = None if len(v:=response.xpath("//ul[contains(@class, 'v2_review-scores__subscore__inner')]")) == 0 else v[0] #get first element
+        #dinamic information
+        self.driver.get(response.request.url)
+        utils.wait_page_load(self.driver)
+        self.driver.maximize_window()
 
-        if parent_categories is not None:
-            categories = parent_categories.xpath(".//li//span[@class='c-score-bar__title']//text()").extract()
-            scores = parent_categories.xpath(".//li//span[@class='c-score-bar__score']//text()").extract()
-            if len(categories) > 0 and len(scores) > 0:
-                for category, score in zip(categories, scores):
-                    category, score = category.strip(), score.strip()
-                    hotel["categories"][f"{category}"] = score
-            else:
-                print("no categories found")
+        categories = [] if len(v:=self.driver.find_elements("xpath", "//div[contains(@class, 'cRLRR')]")) == 0 else v
 
-        hotel_surroundings_parent = None if len(v:=response.xpath("//div[@class='hp_location_block__content_container']")) == 0 else v[0] #get first element
+        for category in categories:
+            hotel["categories"][f"{category.text}"] = self.extract_rating(category.find_element("xpath", ".//span[contains(@class, 'ui_bubble_rating')]").get_attribute('class'))
 
-        if hotel_surroundings_parent is not None:
+        hotel["services_it_provides"] = [] if len(v:=[value.text 
+            for value in self.driver.find_elements("xpath", "//div[contains(@class, 'ssr-init-26f')]//div[contains(@class, 'OsCbb K')]//div[contains(@class, 'yplav f ME H3 _c')]")
+            ]) == 0 else v
 
-            hotel_sections = None if len(v:=hotel_surroundings_parent.xpath(".//div[contains(@class, 'hp_location_block__section_container')]")) == 0 else v
+        hotel["hotel_surroundings"] = [] if len(v:=[value.text 
+            for value in self.driver.find_elements("xpath", "//div[contains(@class, 'ui_column is-4 SdZtm f e')][3]//div[@class='sinXi']")
+            ]) == 0 else v
 
-            if hotel_sections is not None:
-                for section in hotel_sections:
-                    if "bui-title__text" in " ".join(section.xpath(".//div[contains(@class, 'bui-title')]//@class").extract()):
-                        category_name = utils.filter_empty_string(section.xpath(".//div[contains(@class, 'bui-title')]//span[contains(@class, 'bui-title__text')]//text()").extract())
-                        hotel["hotel_surroundings"][f"{category_name}"] = {}
-                        subcategories = None if len(v:=section.xpath(".//li[@class='bui-list__item']")) == 0 else v
-                        if subcategories is not None:
-                            for category in subcategories:
-                                sub_cat = utils.filter_empty_string("".join(category.xpath(".//div[contains(@class, 'bui-list__description')]//text()").extract()))
-                                metric = utils.filter_empty_string("".join(category.xpath(".//div[contains(@class, 'bui-list__item-action')]//text()").extract()))
-                                hotel["hotel_surroundings"][f"{category_name}"][f"{sub_cat}"] = metric
+        hotel["location"] = self.extract_location_from_url(self.driver.find_element("xpath", "//span[@data-test-target='staticMapSnapshot']/img").get_attribute('src'))
+        
+        #seleccionar todos los comentarios (idiomas)
+        buttons = self.driver.find_elements("xpath", "//label[@for='LanguageFilter_0']")
+        hotel["comments"] = []
 
+        if len(buttons) == 1:
+            buttons[0].click()
+            hotel["comments"] = self.get_hotel_comments()
 
-        hotel["services_it_provides"] = utils.filter_empty_string(response.xpath("//div[@class='hotel-facilities__list']//div[contains(@class, 'bui-list__description')]/text()").extract())
-        hotel["comments"] = self.get_hotel_comments(response.request.url)
         hotel["url"] = response.request.url
-
         self.data.append(hotel._values) #save data
 
         yield hotel
